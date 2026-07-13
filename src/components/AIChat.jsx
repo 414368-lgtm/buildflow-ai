@@ -174,18 +174,19 @@ export default function AIChat() {
           </div>
         ))}
 
-        {loading && (
-          <div className="message assistant">
-            <div className="avatar">
-              🏗
-            </div>
+{loading && (
+  <div className="message assistant">
+    <div className="avatar">
+      🏗
+    </div>
 
-            <div className="bubble">
-              Thinking...
-            </div>
-          </div>
-        )}
-
+    <div className="bubble typing">
+      <span></span>
+      <span></span>
+      <span></span>
+    </div>
+  </div>
+)}
         <div ref={messagesEndRef} />
       </div>
 
