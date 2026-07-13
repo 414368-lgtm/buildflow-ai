@@ -276,6 +276,7 @@ const AnimatedLineChart = ({ data, labels }) => {
 };
 
 function App() {
+  const [showHistory, setShowHistory] = useState(false);
   const [activeNav, setActiveNav] = useState("overview");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -603,27 +604,8 @@ function App() {
                 ))}
               </div>
             </div>
-
-            <div className="assistant-card panel-card">
-              <div className="assistant-top">
-                <div>
-                  <p className="panel-eyebrow">AI Assistant</p>
-                  <h2>BuildFlow Copilot</h2>
-                </div>
-                <span className="assistant-badge">Live</span>
-              </div>
-              <p className="assistant-copy">
-                Get instant recommendations for budgets, schedules, and resource risk.
-              </p>
-              <button
-                type="button"
-                className="assistant-button"
-                onClick={() => setStatusMessage("BuildFlow Copilot launched.")}
-              >
-                Launch assistant
-              </button>
-            </div>
-          </div>
+</div>
+           <AIChat />
         </section>
 
         <section className="activity-panel panel-card" aria-labelledby="activity-heading">
@@ -635,17 +617,22 @@ function App() {
             <button
               type="button"
               className="ghost-button"
-              onClick={() => setStatusMessage("Activity history timeline opened.")}
+              onClick={() => setShowHistory((prev) => !prev)}
             >
               See history
             </button>
           </div>
 
-          <div className="activity-list">
-            {filteredActivity.map((item) => (
-              <ActivityItem key={item.time + item.status} item={item} />
-            ))}
-          </div>
+         {showHistory && (
+  <div className="activity-list">
+    {filteredActivity.map((item) => (
+      <ActivityItem
+        key={item.time + item.status}
+        item={item}
+      />
+    ))}
+  </div>
+)}
         </section>
       </main>
     </div>

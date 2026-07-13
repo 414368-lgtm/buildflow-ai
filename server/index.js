@@ -18,45 +18,126 @@ app.get("/", (req, res) => {
 
 app.post("/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const { messages } = req.body;
+
+    if (!Array.isArray(messages)) {
+      return res.status(400).json({
+        error: "Messages must be an array",
+      });
+    }
+
+    const latestUserMessage =
+      [...messages]
+        .reverse()
+        .find((message) => message.role === "user")
+        ?.text?.trim() || "";
+
+    const isRussian = /[а-яА-ЯёЁ]/.test(latestUserMessage);
+
+    const languageInstruction = isRussian
+      ? `
+LANGUAGE MODE: RUSSIAN.
+
+The user's most recent message is written in Russian.
+
+You MUST answer ONLY in Russian.
+Do not answer in English.
+Do not switch to English because previous messages were written in English.
+`
+      : `
+LANGUAGE MODE: ENGLISH.
+
+The user's most recent message is written in English.
+
+You MUST answer ONLY in English.
+Do not answer in Russian.
+`;
+
+    const systemPrompt = `
+You are BuildFlow AI, a professional AI construction assistant.
+
+${languageInstruction}
+
+The language mode above is mandatory and has the highest priority.
+
+Use the full conversation history as context.
+
+You are an experienced:
+- construction engineer
+- project manager
+- construction planner
+- cost estimator
+
+Your areas of expertise include:
+- construction planning
+- cost estimation
+- material selection
+- engineering
+- architecture
+- project risks
+- scheduling
+- budgeting
+
+Give practical and structured answers.
+
+When enough information is available, provide:
+1. Recommendation
+2. Estimated cost
+3. Estimated duration
+4. Risks
+5. Better alternatives
+
+If important project information is missing, ask concise clarifying questions first.
+
+Never claim that conversation history is unavailable when it is provided to you.
+`;
+
+    const ollamaMessages = messages
+      .filter(
+        (message) =>
+          message &&
+          typeof message.text === "string" &&
+          ["user", "assistant"].includes(message.role)
+      )
+      .map((message) => ({
+        role: message.role,
+        content: message.text,
+      }));
+
+    console.log("Последнее сообщение:", latestUserMessage);
+    console.log("Русский язык:", isRussian);
+    console.log("История сообщений:", ollamaMessages.length);
 
     const response = await ollama.chat({
       model: "qwen2.5:7b",
       messages: [
         {
           role: "system",
-          content: `
-You are BuildFlow AI.
-
-You help construction companies.
-
-Your tasks:
-- Project planning
-- Cost estimation
-- Risk analysis
-- Resource management
-- Scheduling
-- Contract advice
-- Productivity improvement
-
-Always answer professionally.
-`,
+          content: systemPrompt,
         },
-        {
-          role: "user",
-          content: message,
-        },
+        ...ollamaMessages,
       ],
+      options: {
+        temperature: 0.3,
+      },
     });
+
+    const reply = response?.message?.content?.trim();
+
+    if (!reply) {
+      throw new Error("Ollama returned an empty response");
+    }
+
+    console.log("Ответ BuildFlow получен.");
 
     res.json({
-      reply: response.message.content,
+      reply,
     });
   } catch (error) {
-    console.error(error);
+    console.error("BuildFlow AI error:", error);
 
     res.status(500).json({
-      error: error.message,
+      error: error.message || "Internal server error",
     });
   }
 });
