@@ -115,7 +115,7 @@ If important project information is missing, ask concise clarifying questions fi
         Authorization: "Bearer " + process.env.OLLAMA_API_KEY,
       },
       body: JSON.stringify({
-        model: "qwen3.5:cloud",
+      model: "gpt-oss:20b",
         messages: [
           {
             role: "system",
