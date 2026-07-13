@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import { Ollama } from "ollama";
 
 dotenv.config();
 
@@ -10,8 +10,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+const ollama = new Ollama({
+  host: "https://ollama.com",
+  headers: {
+    Authorization: Bearer ${process.env.OLLAMA_API_KEY},
+  },
 });
 
 app.get("/", (req, res) => {
@@ -93,7 +96,7 @@ When enough information is available, provide:
 If important project information is missing, ask concise clarifying questions first.
 `;
 
-    const chatMessages = messages
+    const ollamaMessages = messages
       .filter(
         (message) =>
           message &&
@@ -106,24 +109,27 @@ If important project information is missing, ask concise clarifying questions fi
       }));
 
     console.log("Последнее сообщение:", latestUserMessage);
-    console.log("Русский язык:", isRussian);
-    console.log("История сообщений:", chatMessages.length);
+    console.log("История сообщений:", ollamaMessages.length);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-5.5",
+    const response = await ollama.chat({
+      model: "qwen3.5:cloud",
       messages: [
         {
           role: "system",
           content: systemPrompt,
         },
-        ...chatMessages,
+        ...ollamaMessages,
       ],
+      stream: false,
+      options: {
+        temperature: 0.3,
+      },
     });
 
-    const reply = response.choices[0]?.message?.content?.trim();
+    const reply = response?.message?.content?.trim();
 
     if (!reply) {
-      throw new Error("OpenAI returned an empty response");
+      throw new Error("Ollama Cloud returned an empty response");
     }
 
     console.log("Ответ BuildFlow получен.");
