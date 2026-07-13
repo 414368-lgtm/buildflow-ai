@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { Ollama } from "ollama";
 
 dotenv.config();
 
@@ -9,13 +8,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-const ollama = new Ollama({
-  host: "https://ollama.com",
-  headers: {
-    Authorization: Bearer ${process.env.OLLAMA_API_KEY},
-  },
-});
 
 app.get("/", (req, res) => {
   res.json({
@@ -31,6 +23,10 @@ app.post("/chat", async (req, res) => {
       return res.status(400).json({
         error: "Messages must be an array",
       });
+    }
+
+    if (!process.env.OLLAMA_API_KEY) {
+      throw new Error("OLLAMA_API_KEY is missing");
     }
 
     const latestUserMessage =
@@ -109,27 +105,44 @@ If important project information is missing, ask concise clarifying questions fi
       }));
 
     console.log("Последнее сообщение:", latestUserMessage);
+    console.log("Русский язык:", isRussian);
     console.log("История сообщений:", ollamaMessages.length);
 
-    const response = await ollama.chat({
-      model: "qwen3.5:cloud",
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt,
-        },
-        ...ollamaMessages,
-      ],
-      stream: false,
-      options: {
-        temperature: 0.3,
+    const response = await fetch("https://ollama.com/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer " + process.env.OLLAMA_API_KEY,
       },
+      body: JSON.stringify({
+        model: "qwen3.5:cloud",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          ...ollamaMessages,
+        ],
+        stream: false,
+      }),
     });
 
-    const reply = response?.message?.content?.trim();
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Ollama API response:", data);
+
+      throw new Error(
+        data?.error?.message ||
+          data?.error ||
+          "Ollama API request failed"
+      );
+    }
+
+    const reply = data?.message?.content?.trim();
 
     if (!reply) {
-      throw new Error("Ollama Cloud returned an empty response");
+      throw new Error("Ollama returned an empty response");
     }
 
     console.log("Ответ BuildFlow получен.");
