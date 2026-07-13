@@ -1,4 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const WELCOME_MESSAGE = {
+  role: "assistant",
+  text: "👋 Welcome! I am BuildFlow AI. Describe your construction project.",
+};
 
 export default function AIChat() {
   const [messages, setMessages] = useState(() => {
@@ -6,18 +11,17 @@ export default function AIChat() {
 
     if (saved) {
       try {
-        return JSON.parse(saved);
-      } catch {
-        localStorage.removeItem("buildflow-chat");
+        const parsed = JSON.parse(saved);
+
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch (error) {
+        console.error("Chat history error:", error);
       }
     }
 
-    return [
-      {
-        role: "assistant",
-        text: "👋 Welcome! I am BuildFlow AI. Describe your construction project.",
-      },
-    ];
+    return [WELCOME_MESSAGE];
   });
 
   const [input, setInput] = useState("");
@@ -26,39 +30,38 @@ export default function AIChat() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    localStorage.setItem(
+      "buildflow-chat",
+      JSON.stringify(messages)
+    );
+  }, [messages]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({
       behavior: "smooth",
     });
   }, [messages, loading]);
 
-  useEffect(() => {
-    localStorage.setItem("buildflow-chat", JSON.stringify(messages));
-  }, [messages]);
-
   function startNewChat() {
     localStorage.removeItem("buildflow-chat");
-
-    setMessages([
-      {
-        role: "assistant",
-        text: "👋 Welcome! I am BuildFlow AI. Describe your construction project.",
-      },
-    ]);
-
+    setMessages([WELCOME_MESSAGE]);
     setInput("");
+    setLoading(false);
   }
 
   async function sendMessage() {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading) {
+      return;
+    }
 
-    const prompt = input.trim();
+    const userMessage = {
+      role: "user",
+      text: input.trim(),
+    };
 
     const nextMessages = [
       ...messages,
-      {
-        role: "user",
-        text: prompt,
-      },
+      userMessage,
     ];
 
     setMessages(nextMessages);
@@ -66,41 +69,62 @@ export default function AIChat() {
     setLoading(true);
 
     try {
-     const response = await fetch("https://intelligent-clarity-production-0bcd.up.railway.app/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: nextMessages,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
+      const response = await fetch(
+        "https://intelligent-clarity-production-0bcd.up.railway.app/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messages: nextMessages,
+          }),
+        }
+      );
 
       const data = await response.json();
 
-      setMessages((prev) => [
-        ...prev,
+      if (!response.ok) {
+        throw new Error(
+          data.error || "AI server error"
+        );
+      }
+
+      if (!data.reply) {
+        throw new Error(
+          "Empty AI response"
+        );
+      }
+
+      setMessages((currentMessages) => [
+        ...currentMessages,
         {
           role: "assistant",
           text: data.reply,
         },
       ]);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(
+        "BuildFlow AI error:",
+        error
+      );
 
-      setMessages((prev) => [
-        ...prev,
+      setMessages((currentMessages) => [
+        ...currentMessages,
         {
           role: "assistant",
-          text: "❌ Error connecting to AI server.",
+          text: "❌ BuildFlow AI is temporarily unavailable. Please try again.",
         },
       ]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      sendMessage();
     }
   }
 
@@ -121,38 +145,44 @@ export default function AIChat() {
 
         <button
           type="button"
-          onClick={startNewChat}
           className="new-chat-button"
+          onClick={startNewChat}
         >
           New Chat
         </button>
       </div>
 
       <div className="messages">
-        {messages.map((msg, index) => (
+        {messages.map((message, index) => (
           <div
             key={index}
             className={
-              msg.role === "user"
+              message.role === "user"
                 ? "message user"
                 : "message assistant"
             }
           >
-            {msg.role === "assistant" && (
-              <div className="avatar">🏗</div>
+            {message.role === "assistant" && (
+              <div className="avatar">
+                🏗
+              </div>
             )}
 
             <div className="bubble">
-              {msg.text}
+              {message.text}
             </div>
           </div>
         ))}
 
         {loading && (
-          <div className="message assistant typing">
-            <span></span>
-            <span></span>
-            <span></span>
+          <div className="message assistant">
+            <div className="avatar">
+              🏗
+            </div>
+
+            <div className="bubble">
+              Thinking...
+            </div>
           </div>
         )}
 
@@ -160,14 +190,13 @@ export default function AIChat() {
       </div>
 
       <div className="chat-input">
-        <input
+       <input
+  type="text"
           value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              sendMessage();
-            }
-          }}
+          onChange={(event) =>
+            setInput(event.target.value)
+          }
+          onKeyDown={handleKeyDown}
           placeholder="Describe your project..."
           disabled={loading}
         />
@@ -175,7 +204,9 @@ export default function AIChat() {
         <button
           type="button"
           onClick={sendMessage}
-          disabled={loading || !input.trim()}
+          disabled={
+            loading || !input.trim()
+          }
         >
           {loading ? "Thinking..." : "Send"}
         </button>
