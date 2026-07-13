@@ -1,16 +1,86 @@
-# React + Vite
+# BuildFlow AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+BuildFlow AI is an AI-powered construction assistant designed to help users plan and evaluate construction projects.
 
-Currently, two official plugins are available:
+The application analyzes project requirements, asks relevant clarifying questions, and provides structured recommendations based on construction planning, budgeting, scheduling, materials, and project risks.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Live Application
 
-## React Compiler
+BuildFlow AI is deployed as a live web application with an online AI backend.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the Oxlint configuration
+- AI-powered construction assistant
+- English and Russian language support
+- Context-aware conversation history
+- Construction project planning
+- Cost estimation guidance
+- Project duration analysis
+- Material and engineering recommendations
+- Project risk identification
+- Alternative project recommendations
+- Persistent chat history using local storage
+- New chat functionality
+- AI typing animation
+- Responsive desktop and mobile interface
+- Cloud-hosted AI backend
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## AI Architecture
+
+BuildFlow AI uses a cloud-based AI architecture:
+
+User Interface  
+→ React Frontend  
+→ Railway Backend API  
+→ Ollama Cloud API  
+→ GPT-OSS 20B  
+→ AI Response
+
+The backend receives the full conversation history and dynamically detects the language of the user's latest message.
+
+The AI assistant is instructed to respond in the same language as the user and operate as a construction engineer, project manager, construction planner, and cost estimator.
+
+## Tech Stack
+
+### Frontend
+
+- React
+- Vite
+- JavaScript
+- CSS
+- Local Storage
+
+### Backend
+
+- Node.js
+- Express
+- REST API
+- CORS
+- dotenv
+
+### AI
+
+- Ollama Cloud API
+- GPT-OSS 20B
+
+### Deployment
+
+- Railway
+- GitHub
+
+## Project Structure
+
+```text
+real-estate-landing/
+├── src/
+│   ├── components/
+│   │   └── AIChat.jsx
+│   ├── App.jsx
+│   ├── App.css
+│   └── main.jsx
+├── server/
+│   ├── index.js
+│   ├── package.json
+│   └── package-lock.json
+├── package.json
+└── README.md
