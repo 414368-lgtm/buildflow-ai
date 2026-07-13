@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import ollama from "ollama";
+import OpenAI from "openai";
 
 dotenv.config();
 
@@ -9,6 +9,10 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 app.get("/", (req, res) => {
   res.json({
@@ -42,7 +46,6 @@ The user's most recent message is written in Russian.
 
 You MUST answer ONLY in Russian.
 Do not answer in English.
-Do not switch to English because previous messages were written in English.
 `
       : `
 LANGUAGE MODE: ENGLISH.
@@ -58,7 +61,7 @@ You are BuildFlow AI, a professional AI construction assistant.
 
 ${languageInstruction}
 
-The language mode above is mandatory and has the highest priority.
+The language mode above is mandatory.
 
 Use the full conversation history as context.
 
@@ -88,11 +91,9 @@ When enough information is available, provide:
 5. Better alternatives
 
 If important project information is missing, ask concise clarifying questions first.
-
-Never claim that conversation history is unavailable when it is provided to you.
 `;
 
-    const ollamaMessages = messages
+    const chatMessages = messages
       .filter(
         (message) =>
           message &&
@@ -106,26 +107,23 @@ Never claim that conversation history is unavailable when it is provided to you.
 
     console.log("Последнее сообщение:", latestUserMessage);
     console.log("Русский язык:", isRussian);
-    console.log("История сообщений:", ollamaMessages.length);
+    console.log("История сообщений:", chatMessages.length);
 
-    const response = await ollama.chat({
-      model: "qwen2.5:7b",
+    const response = await openai.chat.completions.create({
+      model: "gpt-5.5",
       messages: [
         {
           role: "system",
           content: systemPrompt,
         },
-        ...ollamaMessages,
+        ...chatMessages,
       ],
-      options: {
-        temperature: 0.3,
-      },
     });
 
-    const reply = response?.message?.content?.trim();
+    const reply = response.choices[0]?.message?.content?.trim();
 
     if (!reply) {
-      throw new Error("Ollama returned an empty response");
+      throw new Error("OpenAI returned an empty response");
     }
 
     console.log("Ответ BuildFlow получен.");
@@ -142,8 +140,8 @@ Never claim that conversation history is unavailable when it is provided to you.
   }
 });
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
-app.listen(PORT, () => {
-  console.log(`AI Server running on http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`AI Server running on port ${PORT}`);
 });
