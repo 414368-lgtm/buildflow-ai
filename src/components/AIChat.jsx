@@ -66,7 +66,7 @@ export default function AIChat() {
     setLoading(true);
 
     try {
-     const response = await fetch("/chat", {
+     const response = await fetch("https://intelligent-clarity-production-0bcd.up.railway.app/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
